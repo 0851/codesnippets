@@ -122,17 +122,19 @@ export default {
     },
     bind () {
       event.on(window, 'click', this.close)
+      event.on(window, 'scroll', this.placeholder)
     },
     unbind () {
       event.off(window, 'click', this.close)
+      event.off(window, 'scroll', this.placeholder)
     },
     toggle (state) {
       const self = this
-      self.placeholder()
       if (self.timer) {
         clearTimeout(self.timer)
       }
       self.timer = setTimeout(function () {
+        self.placeholder()
         self.isShow = state
       }, 50)
     },
