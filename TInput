@@ -1,0 +1,190 @@
+<!-- @components Input -->
+<!-- Created by Lynn on 2017/6/28 -->
+<template>
+  <div class="input-wrap">
+    <input type="text" class="input" v-bind="$props"
+           :class="{'has-ico':!!ico,'checked':model}"
+           :type="type"
+           ref="input"
+           :value="model"
+           @input="handleInput"
+           @focus="handleFocus"
+           @blur="handleBlur" />
+    <i class="input-ico" :class="{ico}" v-if="!!ico"></i>
+    <span class="input-tip" v-html="tip" v-if="tip"></span>
+    <span class="input-bottom-line"></span>
+  </div>
+</template>
+<style>
+  /* global styles */
+</style>
+
+<style scoped lang="less">
+  /* local styles */
+  @gray-color: #bdbdbd;
+  @main-color: #1B5A7A;
+  @gray-color-darken: darken(@gray-color, 15%);
+  @line-height: 1.428571429;
+  @font-size: 12px;
+  @transition-time: 0.2s;
+  @font-size-base: @font-size;
+  @line-height-computed: floor((@font-size-base * @line-height));
+  .control-transition(@time: @transition-time) {
+    transition: all @time ease;
+  }
+
+  .input-wrap {
+    position: relative;
+  }
+
+  .input-ico, .input-tip, .input-bottom-line, .input::placeholder, .input-bottom-line::after {
+    .control-transition();
+  }
+
+  .input-bottom-line {
+    display: block;
+    height: 1px;
+    width: 100%;
+    background: @gray-color;
+    position: relative;
+    &::after {
+      content: ' ';
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: @main-color;
+      transform: scaleX(0);
+    }
+  }
+
+  .input-tip {
+    position: absolute;
+    z-index: -1;
+    left: 0;
+    top: 5px;
+    color: @gray-color;
+  }
+
+  .input {
+    width: 100%;
+    padding: 5px 0;
+    background: transparent;
+    &::placeholder {
+      color: transparent;
+    }
+    &.has-ico {
+      padding-right: 20px;
+    }
+    &.active ~ .input-ico,
+    &.checked ~ .input-ico,
+    &:checked ~ .input-ico,
+    &:active ~ .input-ico,
+    &:focus ~ .input-ico,
+    &:hover ~ .input-ico {
+      color: @main-color;
+    }
+    &.active ~ .input-bottom-line,
+    &.checked ~ .input-bottom-line,
+    &:checked ~ .input-bottom-line,
+    &:active ~ .input-bottom-line,
+    &:focus ~ .input-bottom-line,
+    &:hover ~ .input-bottom-line {
+      text-decoration: none;
+      background: @gray-color-darken;
+    }
+    &:focus ~ .input-bottom-line::after,
+    &.active ~ .input-bottom-line::after,
+    &.checked ~ .input-bottom-line::after,
+    &:checked ~ .input-bottom-line::after,
+    &:active ~ .input-bottom-line::after {
+      transform: scaleX(1);
+    }
+    &:focus,
+    &.active,
+    &.checked,
+    &:checked,
+    &:active {
+      &::placeholder {
+        color: @gray-color;
+      }
+    }
+
+    &:focus ~ .input-tip,
+    &.active ~ .input-tip,
+    &.checked ~ .input-tip,
+    &:checked ~ .input-tip,
+    &:active ~ .input-tip {
+      color: @main-color;
+      transform: translate(0, -@line-height-computed) scale(0.75);
+      transform-origin: left top 0px;
+    }
+
+    &.disabled ~ .input-bottom-line,
+    &:disabled ~ .input-bottom-line,
+    &[disabled] ~ .input-bottom-line {
+      background: @main-color;
+    }
+  }
+</style>
+<script>
+
+  export default {
+    props: {
+      value: {
+        default: ''
+      },
+      readonly: Boolean,
+      autofocus: Boolean,
+      disabled: Boolean,
+      type: {
+        type: String,
+        default: 'text'
+      },
+      tip: String,
+      ico: String,
+      placeholder: String,
+      name: String,
+      autoComplete: {
+        type: String,
+        default: 'off'
+      }
+    },
+    watch: {
+      'value' (val, oldValue) {
+        if (val === oldValue) {
+          return
+        }
+        this.setCurrentValue(val)
+      }
+    },
+    data () {
+      return {
+        model: this.value
+      }
+    },
+    methods: {
+      handleBlur (event) {
+        this.$emit('blur', event)
+      },
+      select () {
+        this.$refs.input.select()
+      },
+      handleFocus (event) {
+        this.$emit('focus', event)
+      },
+      handleInput (event) {
+        const value = event.target.value
+        this.setCurrentValue(value)
+        this.$emit('input', value)
+        this.$emit('change', value)
+      },
+      setCurrentValue (value) {
+        if (value === this.model) return
+        this.model = value
+      }
+    }
+  }
+</script>
