@@ -80,7 +80,6 @@
     },
     mounted () {
       this.createWrap()
-      this.bind()
       this.move2Body()
     },
     beforeDestroy () {
@@ -120,23 +119,26 @@
       },
       bind () {
         event.on(document, 'click', this.close)
-        event.on(document, 'scroll', this.placeholder)
+        event.on(window, 'scroll', this.placeholder, true)
       },
       unbind () {
         event.off(document, 'click', this.close)
-        event.off(document, 'scroll', this.placeholder)
+        event.off(window, 'scroll', this.placeholder, true)
       },
       toggle (state) {
         const self = this
         if (self.timer) {
           clearTimeout(self.timer)
         }
+        self.unbind()
         self.timer = setTimeout(function () {
           self.placeholder()
           self.isShow = state
           if (self.isShow === true) {
+            self.bind()
             self.$emit('on-show', self.isShow)
           } else {
+            self.unbind()
             self.$emit('on-hide', self.isShow)
           }
         }, 50)
