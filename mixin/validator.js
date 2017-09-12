@@ -1,8 +1,25 @@
 /**
  * Created by Lynn on 2017/6/26.
  * 验证器
- * 参数格式
- * { 'key' : [?{valid:String,handle:Function|null,arg:Function|String,message:String|Function,watch:Boolean}]? }
+ * 注册 vue mixin
+ * 使用方式 , vue 组件中添加 validation 参数 格式
+   validation: {
+    'name': [
+      {
+        valid: 'required',//valid 可以是validators验证器中的字符串, 也可以自定义函数 , 支持promise
+        message: '名称为必填'
+      }
+    ]
+  }
+ * 验证结果
+ {
+    '$init': true, // 原始
+    '$valid': undefined, // 有效
+    '$run': false, // 检查中
+    '$error': {} // 错误列表
+ }
+ * 提供方法 this.$validation.valid 验证 , 可以指定 key
+ * 提供方法 this.$validation.reset 重置验证
  */
 import _ from 'lodash'
 const validators = { // 结果真代表通过
@@ -17,7 +34,9 @@ const validators = { // 结果真代表通过
     } else if (typeof val === 'string') {
       res = val.length > 0
     } else if (val !== null && typeof val === 'object') {
-      res = Object.keys(val).length > 0
+      res = Object
+        .keys(val)
+        .length > 0
     } else if (val === null || val === undefined) {
       res = false
     }
@@ -128,6 +147,17 @@ const defaultValid = {
   '$run': false, // 检查中
   '$error': {} // 错误列表
 }
+const setWatch = function (valid) {
+  const self = this
+  return self.$watch(valid, _.debounce(function (value, old) {
+    if (value === old) {
+      return
+    }
+    self
+      .$validation
+      .valid(valid)
+  }, 150))
+}
 const validator = {
   created () {
     this.$setValidation()
@@ -144,7 +174,7 @@ const validator = {
         return {}
       }
       return {
-        getValidSet(key) {
+        getValidSet (key) {
           const $$validOptions = self.$$validation[key]
           let $$validSet = []
           if (!_.isArray($$validOptions) && !_.isObject($$validOptions)) {
@@ -158,10 +188,11 @@ const validator = {
           }
           return $$validSet
         },
-        reset() {
+        reset () {
           return new Promise(function (resolve, reject) {
             try {
               self.valid$ = Object.assign({}, defaultValid)
+              self.$setValidation()
               self.$nextTick(() => {
                 resolve.call(self)
               })
@@ -173,13 +204,17 @@ const validator = {
         valid: (valid) => {
           return new Promise(function (resolve, reject) {
             if (!valid) {
-              Object.keys(self.$$validation).forEach(validOne)
+              Object
+                .keys(self.$$validation)
+                .forEach(validOne)
             } else {
               validOne(valid)
             }
             function validOne (valid) {
               const value = _.get(self, valid, null)
-              const $$validSet = self.$validation.getValidSet(valid)
+              const $$validSet = self
+                .$validation
+                .getValidSet(valid)
               if ($$validSet.length <= 0) {
                 return
               }
@@ -202,15 +237,20 @@ const validator = {
               }
 
               function changeAfter$Valid () {
-                let $validOne = Object.keys(self.valid$[valid]['$error']).length <= 0
-                let $valid = Object.keys(self.valid$['$error']).length <= 0
+                let $validOne = Object
+                  .keys(self.valid$[valid]['$error'])
+                  .length <= 0
+                let $valid = Object
+                  .keys(self.valid$['$error'])
+                  .length <= 0
                 let $run = false
-                Object.keys(self.valid$).forEach(function (v) {
-                  if (_.isObject(self.valid$[v]) && self.valid$[v]['$run'] === true) {
-                    $run = true
-                    return
-                  }
-                })
+                Object
+                  .keys(self.valid$)
+                  .forEach(function (v) {
+                    if (_.isObject(self.valid$[v]) && self.valid$[v]['$run'] === true) {
+                      $run = true
+                    }
+                  })
                 self.valid$[valid]['$valid'] = $validOne
                 self.valid$['$valid'] = $valid
                 self.valid$['$run'] = $run
@@ -234,23 +274,25 @@ const validator = {
                   }
                   let arg = options.arg
                   if (_.isFunction(options.arg)) {
-                    arg = options.arg.call(self)
+                    arg = options
+                      .arg
+                      .call(self)
                   }
                   let message = options.message
                   if (_.isFunction(options.message)) {
-                    message = options.message.call(self)
+                    message = options
+                      .message
+                      .call(self)
                   }
 
                   const promise = new Promise(function (resolve, reject) {
                     try {
                       if (_.isFunction(validHandle.then)) {
-                        validHandle(value, arg).then(function (validResult) {
-                          change$ValidIng(validResult, validKey, message)
-                          resolve({
-                            valid: validResult,
-                            message: message
+                        validHandle(value, arg)
+                          .then(function (validResult) {
+                            change$ValidIng(validResult, validKey, message)
+                            resolve({valid: validResult, message: message})
                           })
-                        })
                       } else {
                         change$ValidIng(validHandle(value, arg), validKey, message)
                         resolve({
@@ -268,12 +310,14 @@ const validator = {
                 return validPromiseSet
               }
 
-              Promise.all(createPromiseSet($$validSet)).then(function () {
-                changeAfter$Valid()
-                resolve(self.valid$)
-              }, function (e) {
-                reject(e)
-              })
+              Promise
+                .all(createPromiseSet($$validSet))
+                .then(function () {
+                  changeAfter$Valid()
+                  resolve(self.valid$)
+                }, function (e) {
+                  reject(e)
+                })
             }
           })
         }
@@ -288,33 +332,28 @@ const validator = {
       const self = this
       self.$$validation = $$validation
       self.$$validationWatch = {}
-      const setWatch = function (valid) {
-        const self = this
-        return self.$watch(valid, _.debounce(function (value, old) {
-          if (value === old) {
+      Object
+        .keys($$validation)
+        .forEach(function (valid) {
+          if (!self.$$validationWatch[valid]) {
+            self.$$validationWatch[valid] = {}
+          }
+          if (!self.valid$[valid]) {
+            self.$set(self.valid$, valid, Object.assign({
+              $firstError: ''
+            }, defaultValid))
+          }
+          const isWatch = _.find(self.$validation.getValidSet(valid), function (v) {
+            return v.watch === false
+          })
+          if (isWatch) {
             return
           }
-          self.$validation.valid(valid)
-        }, 150))
-      }
-      Object.keys($$validation).forEach(function (valid) {
-        if (!self.$$validationWatch[valid]) {
-          self.$$validationWatch[valid] = {}
-        }
-        if (!self.valid$[valid]) {
-          self.$set(self.valid$, valid, Object.assign({$firstError: ''}, defaultValid))
-        }
-        const isWatch = _.find(self.$validation.getValidSet(valid), function (v) {
-          return v.watch === false
+          if (self.$$validationWatch[valid]['$watch']) {
+            self.$$validationWatch[valid]['$watch']()
+          }
+          self.$$validationWatch[valid]['$watch'] = setWatch.call(self, valid)
         })
-        if (isWatch) {
-          return
-        }
-        if (self.$$validationWatch[valid]['$watch']) {
-          self.$$validationWatch[valid]['$watch']()
-        }
-        self.$$validationWatch[valid]['$watch'] = setWatch.call(self, valid)
-      })
     }
   }
 }
