@@ -149,14 +149,14 @@ const defaultValid = {
 }
 const setWatch = function (valid) {
   const self = this
-  return self.$watch(valid, _.debounce(function (value, old) {
+  return self.$watch(valid, function (value, old) {
     if (value === old) {
       return
     }
     self
       .$validation
       .valid(valid)
-  }, 150))
+  })
 }
 function safeGet (p, o, defaultString) {
   p = p.split('.')
@@ -202,7 +202,7 @@ const validator = {
               self.valid$ = Object.assign({}, defaultValid)
               self.$setValidation()
               self.$nextTick(() => {
-                resolve.call(self)
+                resolve.call(self.valid$)
               })
             } catch (e) {
               reject(e)
@@ -339,7 +339,7 @@ const validator = {
       }
       const self = this
       self.$$validation = $$validation
-      self.$$validationWatch = {}
+      self.$$validationWatch = self.$$validationWatch || {}
       Object
         .keys($$validation)
         .forEach(function (valid) {
@@ -357,9 +357,8 @@ const validator = {
           if (isWatch) {
             return
           }
-          if (self.$$validationWatch[valid]['$watch']) {
-            self.$$validationWatch[valid]['$watch']()
-          }
+          self.$$validationWatch[valid]['$watch'] && self.$$validationWatch[valid]['$watch']()
+
           self.$$validationWatch[valid]['$watch'] = setWatch.call(self, valid)
         })
     }
