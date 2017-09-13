@@ -158,6 +158,14 @@ const setWatch = function (valid) {
       .valid(valid)
   }, 150))
 }
+function safeGet (p, o, defaultString) {
+  p = p.split('.')
+  return p.reduce(function (xs, x) {
+    return (xs && xs[x])
+      ? xs[x]
+      : defaultString || null
+  }, o)
+}
 const validator = {
   created () {
     this.$setValidation()
@@ -211,7 +219,7 @@ const validator = {
               validOne(valid)
             }
             function validOne (valid) {
-              const value = _.get(self, valid, null)
+              const value = safeGet(valid, self, null)
               const $$validSet = self
                 .$validation
                 .getValidSet(valid)
