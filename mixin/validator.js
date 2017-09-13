@@ -158,6 +158,69 @@ const setWatch = function (valid) {
       .valid(valid)
   })
 }
+function getValidSet ($$validation, key) {
+  const $$validOptions = $$validation[key]
+  let $$validSet = []
+  if (!_.isArray($$validOptions) && !_.isObject($$validOptions)) {
+    return $$validSet
+  }
+  if (_.isObject($$validOptions)) {
+    $$validSet = [$$validOptions]
+  }
+  if (_.isArray($$validOptions)) {
+    $$validSet = $$validOptions
+  }
+  return $$validSet
+}
+function validDataGenerator () {
+  const self = this
+  const $$validation = self.$options.validation
+  const result = Object.assign({}, defaultValid)
+  if (!_.isObject($$validation)) {
+    return
+  }
+  Object
+    .keys($$validation)
+    .forEach(function (valid) {
+      if (!result[valid]) {
+        result[valid] = Object.assign({
+          $firstError: ''
+        }, defaultValid)
+      }
+    })
+  return result
+}
+function bindWatch () {
+  const self = this
+  self.$$validationWatch = self.$$validationWatch || {}
+  const $validation = self.$options.validation
+  Object
+    .keys($validation)
+    .forEach(function (valid) {
+      if (!self.$$validationWatch[valid]) {
+        self.$$validationWatch[valid] = {}
+      }
+      const isWatch = _.find(getValidSet($validation, valid), function (v) {
+        return v.watch === false
+      })
+      if (isWatch) {
+        return
+      }
+      self.$$validationWatch[valid]['$watch'] && self.$$validationWatch[valid]['$watch']()
+      self.$$validationWatch[valid]['$watch'] = setWatch.call(self, valid)
+    })
+}
+function unBindWatch () {
+  const self = this
+  if (Object.keys(self.$$validationWatch).length <= 0) {
+    return
+  }
+  Object
+    .keys(self.$$validationWatch)
+    .forEach(function (valid) {
+      self.$$validationWatch[valid]['$watch'] && self.$$validationWatch[valid]['$watch']()
+    })
+}
 function safeGet (p, o, defaultString) {
   p = p.split('.')
   return p.reduce(function (xs, x) {
@@ -167,58 +230,42 @@ function safeGet (p, o, defaultString) {
   }, o)
 }
 const validator = {
-  created () {
-    this.$setValidation()
-  },
   data () {
     return {
-      valid$$$: Object.assign({}, defaultValid)
+      valid$$$: validDataGenerator.call(this)
     }
+  },
+  beforeDestroy () {
+    unBindWatch.call(this)
   },
   computed: {
     $validation () {
       const self = this
-      if (!_.isObject(self.$$validation)) {
+      const $$validation = self.$options.validation
+      if (!_.isObject($$validation)) {
         throw new Error('需要使用验证方法 必须存在$$validation')
       }
+      bindWatch.call(self)
       return {
         getKey (key) {
-          return key === undefined
-            ? self.valid$$$
-            : self.valid$$$[key] || {}
+          const result = key === undefined
+            ? self['valid$$$']
+            : self['valid$$$'][key] || {}
+          return result
         },
         getValidSet (key) {
-          const $$validOptions = self.$$validation[key]
-          let $$validSet = []
-          if (!_.isArray($$validOptions) && !_.isObject($$validOptions)) {
-            return $$validSet
-          }
-          if (_.isObject($$validOptions)) {
-            $$validSet = [$$validOptions]
-          }
-          if (_.isArray($$validOptions)) {
-            $$validSet = $$validOptions
-          }
-          return $$validSet
+          return getValidSet($$validation, key)
         },
         reset () {
-          return new Promise(function (resolve, reject) {
-            try {
-              self.valid$$$ = Object.assign({}, defaultValid)
-              self.$setValidation()
-              self.$nextTick(() => {
-                resolve.call(self.valid$$$)
-              })
-            } catch (e) {
-              reject(e)
-            }
-          })
+          unBindWatch.call(self)
+          self['valid$$$'] = validDataGenerator.call(self)
+          bindWatch.call(self)
         },
         valid: (valid) => {
           return new Promise(function (resolve, reject) {
             if (!valid) {
               Object
-                .keys(self.$$validation)
+                .keys($$validation)
                 .forEach(validOne)
             } else {
               validOne(valid)
@@ -232,42 +279,42 @@ const validator = {
                 return
               }
               function changeBefore$Valid () {
-                self.valid$$$[valid]['$init'] = false
-                self.valid$$$[valid]['$run'] = true
-                self.valid$$$[valid]['$error'] = {}
-                self.valid$$$[valid]['$firstError'] = ''
-                self.valid$$$['$init'] = false
-                delete self.valid$$$['$error'][valid]
+                self['valid$$$'][valid]['$init'] = false
+                self['valid$$$'][valid]['$run'] = true
+                self['valid$$$'][valid]['$error'] = {}
+                self['valid$$$'][valid]['$firstError'] = ''
+                self['valid$$$']['$init'] = false
+                delete self['valid$$$']['$error'][valid]
               }
 
               function change$ValidIng (validResult, validKey, message) {
                 if (validResult === false) {
-                  self.valid$$$[valid]['$error'][validKey] = message
-                  self.valid$$$['$error'][valid] = self.valid$$$['$error'][valid] || {}
-                  self.valid$$$['$error'][valid][validKey] = message
-                  self.valid$$$[valid]['$firstError'] = self.valid$$$[valid]['$firstError'] || message
+                  self['valid$$$'][valid]['$error'][validKey] = message
+                  self['valid$$$']['$error'][valid] = self['valid$$$']['$error'][valid] || {}
+                  self['valid$$$']['$error'][valid][validKey] = message
+                  self['valid$$$'][valid]['$firstError'] = self['valid$$$'][valid]['$firstError'] || message
                 }
-                self.valid$$$[valid]['$run'] = false
+                self['valid$$$'][valid]['$run'] = false
               }
 
               function changeAfter$Valid () {
                 let $validOne = Object
-                  .keys(self.valid$$$[valid]['$error'])
+                  .keys(self['valid$$$'][valid]['$error'])
                   .length <= 0
                 let $valid = Object
-                  .keys(self.valid$$$['$error'])
+                  .keys(self['valid$$$']['$error'])
                   .length <= 0
                 let $run = false
                 Object
-                  .keys(self.valid$$$)
+                  .keys(self['valid$$$'])
                   .forEach(function (v) {
-                    if (_.isObject(self.valid$$$[v]) && self.valid$$$[v]['$run'] === true) {
+                    if (_.isObject(self['valid$$$'][v]) && self['valid$$$'][v]['$run'] === true) {
                       $run = true
                     }
                   })
-                self.valid$$$[valid]['$valid'] = $validOne
-                self.valid$$$['$valid'] = $valid
-                self.valid$$$['$run'] = $run
+                self['valid$$$'][valid]['$valid'] = $validOne
+                self['valid$$$']['$valid'] = $valid
+                self['valid$$$']['$run'] = $run
               }
 
               function createPromiseSet (set) {
@@ -331,7 +378,9 @@ const validator = {
                 .all(createPromiseSet($$validSet))
                 .then(function () {
                   changeAfter$Valid()
-                  resolve(self.valid$$$)
+                  resolve(valid
+                    ? self['valid$$$'][valid]
+                    : self['valid$$$'])
                 }, function (e) {
                   reject(e)
                 })
@@ -339,37 +388,6 @@ const validator = {
           })
         }
       }
-    }
-  },
-  methods: {
-    $setValidation ($$validation = this.$options.validation) {
-      if (!_.isObject($$validation)) {
-        return
-      }
-      const self = this
-      self.$$validation = $$validation
-      self.$$validationWatch = self.$$validationWatch || {}
-      Object
-        .keys($$validation)
-        .forEach(function (valid) {
-          if (!self.$$validationWatch[valid]) {
-            self.$$validationWatch[valid] = {}
-          }
-          if (!self.valid$$$[valid]) {
-            self.$set(self.valid$$$, valid, Object.assign({}, {
-              $firstError: ''
-            }, defaultValid))
-          }
-          const isWatch = _.find(self.$validation.getValidSet(valid), function (v) {
-            return v.watch === false
-          })
-
-          if (isWatch) {
-            return
-          }
-          self.$$validationWatch[valid]['$watch'] && self.$$validationWatch[valid]['$watch']()
-          self.$$validationWatch[valid]['$watch'] = setWatch.call(self, valid)
-        })
     }
   }
 }
