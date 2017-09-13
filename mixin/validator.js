@@ -271,36 +271,36 @@ const validator = {
             } else {
               validOne(valid)
             }
-            function validOne (valid) {
-              const value = safeGet(valid, self, null)
+            function validOne (key) {
+              const value = safeGet(key, self, null)
               const $$validSet = self
                 .$validation
-                .getValidSet(valid)
+                .getValidSet(key)
               if ($$validSet.length <= 0) {
                 return
               }
               function changeBefore$Valid () {
-                self['valid$$$'][valid]['$init'] = false
-                self['valid$$$'][valid]['$run'] = true
-                self['valid$$$'][valid]['$error'] = {}
-                self['valid$$$'][valid]['$firstError'] = ''
+                self['valid$$$'][key]['$init'] = false
+                self['valid$$$'][key]['$run'] = true
+                self['valid$$$'][key]['$error'] = {}
+                self['valid$$$'][key]['$firstError'] = ''
                 self['valid$$$']['$init'] = false
-                delete self['valid$$$']['$error'][valid]
+                delete self['valid$$$']['$error'][key]
               }
 
               function change$ValidIng (validResult, validKey, message) {
                 if (validResult === false) {
-                  self['valid$$$'][valid]['$error'][validKey] = message
-                  self['valid$$$']['$error'][valid] = self['valid$$$']['$error'][valid] || {}
-                  self['valid$$$']['$error'][valid][validKey] = message
-                  self['valid$$$'][valid]['$firstError'] = self['valid$$$'][valid]['$firstError'] || message
+                  self['valid$$$'][key]['$error'][validKey] = message
+                  self['valid$$$']['$error'][key] = self['valid$$$']['$error'][key] || {}
+                  self['valid$$$']['$error'][key][validKey] = message
+                  self['valid$$$'][key]['$firstError'] = self['valid$$$'][key]['$firstError'] || message
                 }
-                self['valid$$$'][valid]['$run'] = false
+                self['valid$$$'][key]['$run'] = false
               }
 
               function changeAfter$Valid () {
                 let $validOne = Object
-                  .keys(self['valid$$$'][valid]['$error'])
+                  .keys(self['valid$$$'][key]['$error'])
                   .length <= 0
                 let $valid = Object
                   .keys(self['valid$$$']['$error'])
@@ -313,7 +313,7 @@ const validator = {
                       $run = true
                     }
                   })
-                self['valid$$$'][valid]['$valid'] = $validOne
+                self['valid$$$'][key]['$valid'] = $validOne
                 self['valid$$$']['$valid'] = $valid
                 self['valid$$$']['$run'] = $run
               }
@@ -379,9 +379,7 @@ const validator = {
                 .all(createPromiseSet($$validSet))
                 .then(function () {
                   changeAfter$Valid()
-                  resolve(valid
-                    ? self['valid$$$'][valid]
-                    : self['valid$$$'])
+                  resolve(self['valid$$$'])
                 }, function (e) {
                   reject(e)
                 })
