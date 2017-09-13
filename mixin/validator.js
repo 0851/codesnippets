@@ -176,22 +176,17 @@ const validator = {
     }
   },
   computed: {
-    $valid () {
+    $validation () {
       const self = this
+      if (!_.isObject(self.$$validation)) {
+        throw new Error('需要使用验证方法 必须存在$$validation')
+      }
       return {
         getKey (key) {
           return key === undefined
             ? self.valid$$$
             : self.valid$$$[key] || {}
-        }
-      }
-    },
-    $validation () {
-      const self = this
-      if (!_.isObject(self.$$validation)) {
-        return {}
-      }
-      return {
+        },
         getValidSet (key) {
           const $$validOptions = self.$$validation[key]
           let $$validSet = []
