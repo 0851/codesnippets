@@ -212,7 +212,7 @@ function bindWatch () {
 }
 function unBindWatch () {
   const self = this
-  if (Object.keys(self.$$validationWatch).length <= 0) {
+  if (!self.$$validationWatch || Object.keys(self.$$validationWatch).length <= 0) {
     return
   }
   Object
@@ -245,6 +245,7 @@ const validator = {
       if (!_.isObject($$validation)) {
         throw new Error('需要使用验证方法 必须存在$$validation')
       }
+      unBindWatch.call(self)
       bindWatch.call(self)
       return {
         getKey (key) {
